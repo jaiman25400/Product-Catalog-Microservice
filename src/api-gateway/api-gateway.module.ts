@@ -9,8 +9,8 @@ import { ApiGatewayController } from './api-gateway.controller';
         name: 'PRODUCTS_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: 'localhost',
-          port: 3001,
+          host: process.env.MICROSERVICE_HOST || 'localhost',
+          port: parseInt(process.env.MICROSERVICE_PORT || '3001'),
         },
       },
     ]),
