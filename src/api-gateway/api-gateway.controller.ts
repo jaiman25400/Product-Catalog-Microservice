@@ -139,7 +139,7 @@ export class ApiGatewayController {
       };
     } catch (error) {
       throw new HttpException(
-        error.message || 'Failed to Delete product',
+        error.message || 'Failed to delete product',
         error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
