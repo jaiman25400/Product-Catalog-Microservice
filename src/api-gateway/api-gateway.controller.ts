@@ -1,6 +1,6 @@
 import { 
   Controller, Get, Post, Put, Delete, Body, Param, Query, Inject,
-  HttpException, HttpStatus, Version
+  HttpException, HttpStatus
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -14,7 +14,6 @@ export class ApiGatewayController {
   ) {}
 
   @Get('health')
-  @Version('1')
   async healthCheck() {
     return {
       status: 'ok',
@@ -26,8 +25,10 @@ export class ApiGatewayController {
     };
   }
 
+  // ===========================================
+  // VERSION 1 ENDPOINTS
+  // ===========================================
   @Get('v1/products')
-  @Version('1')
   async getAllProducts() {
     try {
       return await firstValueFrom(
@@ -42,7 +43,6 @@ export class ApiGatewayController {
   }
 
   @Get('v1/products/search')
-  @Version('1')
   async searchProducts(@Query('query') query: string) {
     try {
       if (!query || query.trim().length === 0) {
@@ -61,7 +61,6 @@ export class ApiGatewayController {
   }
 
   @Get('v1/products/:id')
-  @Version('1')
   async getProduct(@Param('id') id: string) {
     try {
       if (!id || id.trim().length === 0) {
@@ -86,7 +85,6 @@ export class ApiGatewayController {
   }
   
   @Post('v1/products')
-  @Version('1')
   async createProduct(@Body() product: CreateProductDto) {
     try {
       const createdProduct = await firstValueFrom(
@@ -106,7 +104,6 @@ export class ApiGatewayController {
   }
 
   @Put('v1/products/:id')
-  @Version('1')
   async updateProduct(@Param('id') id: string, @Body() product: UpdateProductDto) {
     try {
       if (!id || id.trim().length === 0) {
@@ -137,7 +134,6 @@ export class ApiGatewayController {
   }
 
   @Delete('v1/products/:id')
-  @Version('1')
   async deleteProduct(@Param('id') id: string) {
     try {
       if (!id || id.trim().length === 0) {
@@ -163,4 +159,58 @@ export class ApiGatewayController {
       );
     }
   }
+
+  // ===========================================
+  // FUTURE: VERSION 2 ENDPOINTS (EXAMPLE)
+  // ===========================================
+  /*
+  @Get('v2/products')
+  async getAllProductsV2() {
+    // Enhanced version with pagination, filtering, etc.
+    try {
+      const products = await firstValueFrom(
+        this.productsClient.send({ cmd: 'get_all_products_v2' }, {})
+      );
+      
+      return {
+        data: products,
+        metadata: {
+          version: '2.0.0',
+          timestamp: new Date().toISOString(),
+          pagination: { page: 1, limit: 10, total: products.length }
+        }
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to fetch products',
+        error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('v2/products')
+  async createProductV2(@Body() product: CreateProductDto) {
+    // Enhanced version with additional validation, audit trail, etc.
+    try {
+      const createdProduct = await firstValueFrom(
+        this.productsClient.send({ cmd: 'create_product_v2' }, product)
+      );
+      
+      return {
+        message: 'Product created successfully (v2)',
+        product: createdProduct,
+        metadata: {
+          version: '2.0.0',
+          created_at: new Date().toISOString(),
+          audit_id: `audit_${Date.now()}`
+        }
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to create product',
+        error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  */
 }
