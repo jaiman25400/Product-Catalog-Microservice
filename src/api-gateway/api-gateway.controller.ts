@@ -1,19 +1,33 @@
 import { 
   Controller, Get, Post, Put, Delete, Body, Param, Query, Inject,
-  HttpException, HttpStatus 
+  HttpException, HttpStatus, Version
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
-@Controller('products')
+@Controller()
 export class ApiGatewayController {
   constructor(
     @Inject('PRODUCTS_SERVICE') private readonly productsClient: ClientProxy,
   ) {}
 
-  @Get()
+  @Get('health')
+  @Version('1')
+  async healthCheck() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      service: 'api-gateway',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development'
+    };
+  }
+
+  @Get('v1/products')
+  @Version('1')
   async getAllProducts() {
     try {
       return await firstValueFrom(
@@ -27,11 +41,12 @@ export class ApiGatewayController {
     }
   }
 
-  @Get('search')
+  @Get('v1/products/search')
+  @Version('1')
   async searchProducts(@Query('query') query: string) {
     try {
       if (!query || query.trim().length === 0) {
-        throw new HttpException('Search query is required :', HttpStatus.BAD_REQUEST);
+        throw new HttpException('Search query is required', HttpStatus.BAD_REQUEST);
       }
       
       return await firstValueFrom(
@@ -45,7 +60,8 @@ export class ApiGatewayController {
     }
   }
 
-  @Get(':id')
+  @Get('v1/products/:id')
+  @Version('1')
   async getProduct(@Param('id') id: string) {
     try {
       if (!id || id.trim().length === 0) {
@@ -69,7 +85,8 @@ export class ApiGatewayController {
     }
   }
   
-  @Post()
+  @Post('v1/products')
+  @Version('1')
   async createProduct(@Body() product: CreateProductDto) {
     try {
       const createdProduct = await firstValueFrom(
@@ -88,7 +105,8 @@ export class ApiGatewayController {
     }
   }
 
-  @Put(':id')
+  @Put('v1/products/:id')
+  @Version('1')
   async updateProduct(@Param('id') id: string, @Body() product: UpdateProductDto) {
     try {
       if (!id || id.trim().length === 0) {
@@ -118,7 +136,8 @@ export class ApiGatewayController {
     }
   }
 
-  @Delete(':id')
+  @Delete('v1/products/:id')
+  @Version('1')
   async deleteProduct(@Param('id') id: string) {
     try {
       if (!id || id.trim().length === 0) {

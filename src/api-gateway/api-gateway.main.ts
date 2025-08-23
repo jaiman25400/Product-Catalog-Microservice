@@ -6,10 +6,18 @@ import {
   BadRequestException,
   ValidationError,
   ValidationPipe,
+  VersioningType,
 } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(ApiGatewayModule);
+  
+  // Enable API versioning
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
+
   // Apply global filter
   app.useGlobalFilters(new RpcExceptionFilter());
 
@@ -23,7 +31,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       transformOptions: {
-        enableImplicitConversion: true, // Enable type conversion
+        enableImplicitConversion: true,
       },
       exceptionFactory: (errors: ValidationError[]) => {
         const messages = errors.map((error) => {
@@ -46,6 +54,6 @@ async function bootstrap() {
   await app.listen(3000);
 
   console.log('API Gateway is running on port : 3000');
+  console.log('API Version 1 available at: /v1');
 }
-
 bootstrap();
