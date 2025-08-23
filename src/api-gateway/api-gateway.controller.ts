@@ -31,7 +31,7 @@ export class ApiGatewayController {
   async searchProducts(@Query('query') query: string) {
     try {
       if (!query || query.trim().length === 0) {
-        throw new HttpException('Search query is required', HttpStatus.BAD_REQUEST);
+        throw new HttpException('Search query is required :', HttpStatus.BAD_REQUEST);
       }
       
       return await firstValueFrom(
