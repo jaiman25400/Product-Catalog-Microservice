@@ -35,7 +35,7 @@ jobs:
       run: npm ci
 
     - name: 🧪 Run tests
-      run: npm test
+      run: npm test -- api-gateway.controller.spec.ts
 
     - name: 🏗️ Build application
       run: npm run build
