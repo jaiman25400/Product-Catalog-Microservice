@@ -1,9 +1,7 @@
 # ===========================================
-# MICROSERVICE IMAGE
+# SHARED BUILDER STAGE (Builds everything once)
 # ===========================================
-
-# Build stage for Microservice
-FROM node:18-alpine AS microservice-builder
+FROM node:18-alpine AS shared-builder
 
 WORKDIR /usr/src/app
 
@@ -18,10 +16,12 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the microservice
+# Build the entire application (both microservice and API gateway)
 RUN npm run build
 
-# Production stage for Microservice
+# ===========================================
+# MICROSERVICE IMAGE
+# ===========================================
 FROM node:18-alpine AS microservice
 
 WORKDIR /usr/src/app
@@ -32,8 +32,8 @@ COPY package*.json ./
 # Install ONLY production dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy built microservice from builder stage
-COPY --from=microservice-builder /usr/src/app/dist ./dist
+# Copy built microservice from shared builder stage
+COPY --from=shared-builder /usr/src/app/dist ./dist
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -56,27 +56,6 @@ CMD ["node", "dist/microservices/main"]
 # ===========================================
 # API GATEWAY IMAGE
 # ===========================================
-
-# Build stage for API Gateway
-FROM node:18-alpine AS api-gateway-builder
-
-WORKDIR /usr/src/app
-
-# Copy package files
-COPY package*.json ./
-COPY tsconfig*.json ./
-COPY nest-cli.json ./
-
-# Install ALL dependencies (including devDependencies for building)
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Build the API Gateway
-RUN npm run build
-
-# Production stage for API Gateway
 FROM node:18-alpine AS api-gateway
 
 WORKDIR /usr/src/app
@@ -87,8 +66,8 @@ COPY package*.json ./
 # Install ONLY production dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy built API Gateway from builder stage
-COPY --from=api-gateway-builder /usr/src/app/dist ./dist
+# Copy built API Gateway from shared builder stage
+COPY --from=shared-builder /usr/src/app/dist ./dist
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

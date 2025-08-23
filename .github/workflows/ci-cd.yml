@@ -12,7 +12,9 @@ env:
   IMAGE_NAME_GATEWAY: ${{ secrets.DOCKERHUB_USERNAME }}/product-api-gateway
 
 jobs:
-  test-and-build:
+  # STAGE 1: CODE QUALITY & TESTING
+  code-quality:
+    name: 🔍 Code Quality & Testing
     runs-on: ubuntu-latest
 
     strategy:
@@ -20,35 +22,46 @@ jobs:
         node-version: [18.x]
 
     steps:
-    - name: Checkout code
+    - name: 📥 Checkout code
       uses: actions/checkout@v3
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: 🟢 Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
-    - name: Install dependencies
+    - name: 📦 Install dependencies
       run: npm ci
 
-    - name: Run tests
-      run: npm test -- api-gateway.controller.spec.ts
+    - name: 🧪 Run tests
+      run: npm test
 
-    - name: Build application
+    - name: 🏗️ Build application
       run: npm run build
 
-    - name: Set up Docker Buildx
+  # STAGE 2: DOCKER BUILD & PUSH
+  docker-build:
+    name: 🐳 Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: code-quality
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 🔐 Setup Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Log in to Docker Hub
+    - name: 🔑 Login to Docker Hub
       uses: docker/login-action@v2
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Extract metadata
+    - name: 🏷️ Extract metadata for Microservice
       id: meta-microservice
       uses: docker/metadata-action@v4
       with:
@@ -60,7 +73,7 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=sha
 
-    - name: Extract metadata for gateway
+    - name: 🏷️ Extract metadata for API Gateway
       id: meta-gateway
       uses: docker/metadata-action@v4
       with:
@@ -72,35 +85,54 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=sha
 
-    - name: Build and push Microservice Docker image
+    - name: 🚀 Build & Push Microservice
       uses: docker/build-push-action@v4
       with:
         context: .
         file: Dockerfile
         target: microservice
-        push: ${{ github.ref == 'refs/heads/main' }}
+        push: true
         tags: ${{ steps.meta-microservice.outputs.tags }}
         labels: ${{ steps.meta-microservice.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Build and push API Gateway Docker image
+    - name: 🚀 Build & Push API Gateway
       uses: docker/build-push-action@v4
       with:
         context: .
         file: Dockerfile
         target: api-gateway
-        push: ${{ github.ref == 'refs/heads/main' }}
+        push: true
         tags: ${{ steps.meta-gateway.outputs.tags }}
         labels: ${{ steps.meta-gateway.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Output image URLs
-      if: github.ref == 'refs/heads/main'
+  # STAGE 3: DEPLOYMENT SUMMARY
+
+  deployment-summary:
+    name: 📋 Deployment Summary
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: 📊 Generate deployment summary
       run: |
-        echo "Microservice Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MICROSERVICE }}:latest"
-        echo "API Gateway Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_GATEWAY }}:latest"
-        echo "Deploy commands:"
-        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MICROSERVICE }}:latest"
-        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_GATEWAY }}:latest"
+        echo "🎉 CI/CD Pipeline Completed Successfully!"
+        echo "=========================================="
+        echo "📦 Images Built & Pushed:"
+        echo "   • Microservice: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MICROSERVICE }}:latest"
+        echo "   • API Gateway: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_GATEWAY }}:latest"
+        echo ""
+        echo "🚀 Next Steps:"
+        echo "   1. Pull images: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MICROSERVICE }}:latest"
+        echo "   2. Deploy containers using the deployment guide"
+        echo "   3. Test your API endpoints"
+        echo ""
+        echo "🔗 Docker Hub Images:"
+        echo "   • https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/product-microservice"
+        echo "   • https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/product-api-gateway"
+        echo ""
+        echo "✅ Pipeline Status: SUCCESS"
